@@ -55,7 +55,7 @@ int main(void)
     // Schedule and run some tasks.
     //
     scheduler_init(4);
-    
+   
     scheduler_create_task("Job A", jobA);
     scheduler_create_task("Job B", jobB);
     scheduler_create_task("Job C", jobC);

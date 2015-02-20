@@ -30,11 +30,7 @@
 #include "scheduler.h"
 #include "serial.h"
 
-
 static struct task **tasks = NULL;
-static struct task* task = NULL;
-static struct task* tempTask = NULL;
-static struct task* cur_task = NULL;
 static size_t max_tasks = 0;
 static size_t current_task;
 
@@ -58,12 +54,12 @@ scheduler_init(task_count n)
     //get rid of any existing tasks
     if(tasks != NULL){
         for (int i = 0; i < max_tasks; i++){
-            task = tasks[i];
-            free(task);
+            struct task *task_ = tasks[i];
+            free(task_);
         }
         free(tasks);
     }
-    tasks =  malloc(max_tasks * (sizeof(task)));
+    tasks =  malloc(max_tasks * (sizeof(struct task)));
 	return setup_timer();
 }
 
@@ -75,20 +71,20 @@ scheduler_create_task(const char *name, void (*start)(void*))
      * Create a new task with the given name and start function.
      * Add it to `tasks`.
      */
-    //find a location to put the new task
+    //find a location to put the new task in the `tasks`
     for (int i = 0; i < max_tasks; i++){
         if(tasks[i] == NULL){
-            tempTask = malloc(sizeof(task));
+            struct task *tempTask = malloc(sizeof(struct task));
             strcpy(tempTask->t_name, name);
             tempTask->t_blocked = false;
             tempTask->t_run = start;
             tempTask->t_ref = 1;
-            tasks[i] = task;
+            tasks[i] = tempTask;
             current_task++;
             return tempTask;
         }
     }
-    //did not find a position to put the
+    //did not find a position to put
 	return NULL;
 }
 
@@ -101,21 +97,22 @@ scheduler_create_task(const char *name, void (*start)(void*))
 void
 scheduler_run()
 {
-    for(int i = 0; i < max_tasks; i++){
+    while(tasks != NULL){
+     for(int i = 0; i < max_tasks; i++){
         if(tasks[i] != NULL){
             //start running the task
-            cur_task = tasks[i];
-            scheduler_tick(&cur_task->t_pcb);
+            struct task *cur_task = tasks[i];
             activate(cur_task);
+            scheduler_tick(&cur_task->t_pcb);
             
             
-            
-            //finish the task
-            free(cur_task);
-            cur_task->t_ref--;
-            tasks[i] = NULL;
+            //finish the task, release it.
+            //free(cur_task);
+            //cur_task->t_ref--;
+            //tasks[i] = NULL;
             
         }
+      }
     }
 }
 
@@ -127,20 +124,25 @@ scheduler_tick(struct pcb *pcb)
 {
 	// XOR the state of the 'L' LED
 	PORTB ^= 0x20;
-    
+   
 	/*
 	 * A scheduling quantum has elapsed:
 	 * make a scheduling decision (e.g., switch task).
 	 */
+    int16_t pc = pcb->p_pc;
+    //schedule next excution task, should determine when should switch task
+    
+    
+    
     
 }
-
+//Since the operating system has effectively suspended the execution of the first process, it can now load the PCB and context of the second process. In doing so, the program counter from the PCB is loaded, and thus execution can continue in the new process. New processes are chosen from a queue or queues (often referred as ready queue). Process and thread priority can influence which process continues execution, with processes of the highest priority checked first for ready threads to execute.
 
 static void
 activate(struct task *t)
 {
 	static struct pcb pcb;
-
+    
 	// Has this task started running yet?
 	if (t->t_pcb.p_pc)
 	{
@@ -160,8 +162,11 @@ activate(struct task *t)
 
 		// Push a 0 on the stack (no return address).
 		*t->t_stack = 0;
+        //save the current context of the process, when the scheduler gets back to the execution of first process, it can restore this state and continue.
+        context_save(&pcb);
 	}
 
+    //restore the task state and continue;
 	context_restore(&pcb);
 }
 
