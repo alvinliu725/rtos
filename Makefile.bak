@@ -1,0 +1,9 @@
+BOARD = uno
+ARDUINO_DIR = /usr/local/Cellar/arduino-mk/1.3.4
+C_STANDARD = -std=c99
+WARNINGS = -Wall
+VERSION = -D VERSION=\"0.0.1\"
+
+CFLAGS += $(C_STANDARD) $(WARNINGS) $(VERSION)
+
+include /usr/local/Cellar/arduino-mk/1.3.4/Arduino.mk
